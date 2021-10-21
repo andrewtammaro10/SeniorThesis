@@ -1,0 +1,210 @@
+---
+title: "NFL Front Office Analytics with R"
+author: |
+  | Andrew Tammaro and Jun Yan
+  | andrew.2.tammaro@uconn.edu
+  | University of Connecticut
+date: "December 2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Introduction
+
+Football is a game that has been around for over 150 years. The National Football League has been around for over 100 years. In those time spans, rules have been enacted and abolished, strategies have been developed and beaten, franchises have been created and faded away, and legends have cemented their places in the game’s hallowed halls. The game has changed time and time again. Teams are always finding new thinkers to hire. Coaches are constantly thinking of new ways to beat their opponents. Players are training their bodies in increasingly unique fashions to beat out competitors. After all of this time, one would think that every possible advantage to be had has been found. It would not be unreasonable to assume that the game is done changing. 150 years is a long time to discover every possible way to win a game, run a play, or even pick a player.
+	
+For decades, evaluating a player and making a decision regarding whether or not to draft or sign him has been essentially done in the same fashion. A team relies on its scouting department, a group of professionals who have watched and studied the game for decades, to find and research a player and decide what the correct course of action is. If the player is in college, they attempt to use game film and his combine measurements to determine where and when he should be drafted. If the player is available to sign, they bank on what they’ve seen from the player to decide whether or not they will help the team win. At the end of the day, team success is what matters most, regardless of how they get there. Wins and championships are the quickest way to help critics forget everything negative they had to say about a team or player. That is why in this age of football where old-timers have “thought of everything”, a new era of football strategy is emerging: data analytics.
+
+The 2002 Oakland Athletics of Major League Baseball were told to operate with much less money to spend on assembling the team than their competitors. Their solution was to use statistical models and new metrics to build a cheap team. Their strategy was heavily criticized when they were losing at first before quickly being praised when the team went on the longest winning streak (21 games) in American League history and made the playoffs. Baseball is a game of measurable statistics, while football requires a slightly larger amount of knowledge and feel. The plays are less disjointed and there are far more moving parts and options. However, it is still possible to use analytical models and tests in order to better evaluate a team’s performance and a player’s abilities.
+
+Through statistical research and modeling, I am attempting to answer a critical question, using math, which others have attempted to answer with “eye-tests” and “gut-instincts” for decades. Can a statistical model of college statistics predict how successful a quarterback will be at the professional level? This question pertains to multiple phases of today’s game, including college football players, the NFL Combine, and the NFL Draft. It is important to note that the answers found through this research are not an end-all solution. A model forecasts what you ask it to forecast and a computer learns what you teach it. However, it is impossible to teach it everything about football. It is impossible to teach it the intangibles, such as heart, loyalty, and effort. Ultimately, this question, and solutions that it may lead to, will attempt to serve as a guide to franchises who may be open to looking to data analytics as a way to improve the performance of their team.
+
+
+## Data
+
+According to numbers released by Statista^1^, the National Football League generated $14.48B in 2018, more than any other American professional sports league. While passion for the game drives the sport forward, it would be naive not to see the value and impact that money has in today’s league. The best players are rewarded with the highest contracts while the worst players try to eke out a living on a paltry league minimum salary of just $480,000 as negotiated in the league’s collective bargaining agreement and reported by CNBC^2^. It can be tempting for teams to immediately reward the fan favorite players with the biggest contracts. A recent example is Nick Foles, a Super Bowl MVP quarterback for the Philadelphia Eagles who was rewarded for his brilliant, albeit brief, success with a 4 year contract worth $22M per year by the Jacksonville Jaguars. Foles had an abysmal year racked with injuries concerns and was benched in favor of a rookie before being traded for a mere fourth round pick. It takes a team to win the Super Bowl, sometimes dictating a more spread-out approach when it comes to managing money. A study of the contracts and corresponding records of every NFL team in 2019 yielded some interesting results, critical to justifying the analysis of the quarterback position.
+
+The first step was to download data containing the spending of every team for a given year. While every roster contains 53 players and almost all of them contribute, it seemed safer to focus on starters only due to the high amount of injuries that occur on an annual basis. This information was found via Spotrac^3^. A linear model regression was run on the data, attempting to use the spending on a positional basis of QB (quarterbacks), RB/FB (running backs and fullbacks), WR (wide receivers), TE (tight ends), OL (offensive linemen), DL (defensive linemen), LB (linebackers), DB (defensive backs), K/P/LS (special teams players) to forecast the winning percentage. This model was semi-successful, yielding a R-squared value of 0.4353.
+
+
+```{r cashmod1, echo=FALSE}
+cash <- read.csv("/Users/drewtammaro/Desktop/Drew Data Work/PositionCash.csv")
+cashmod <- lm(Win ~ QB + RB.FB + WR + TE + OL + DL + LB + DB + K.P.LS, data = cash, na.action = na.omit)
+library(broom)
+cash1 <- tidy(cashmod)
+cashg1 <- glance(cashmod)
+knitr::kable(cash1, caption = "Cash Model 1")
+knitr::kable(cashg1[1:4])
+```
+
+
+In an attempt to see if looking at each team’s positional spending as a percentage of their entire roster, each position was divided by the total and multiplied by 100. This exercise sought to offset the differences in total payroll between the various teams. However, there is a clear issue with this concept. For one, every positional percentage would need to be adjusted every time a player was signed as the total was changing as opposed to just the corresponding position. Also, the R-squared value decreased dramatically, to 0.182.
+
+
+```{r cashmod2, echo=FALSE}
+cash$QBP <- (cash$QB / cash$TOTAL) * 100
+cash$RB.FBP <- (cash$RB.FB / cash$TOTAL) * 100
+cash$WRP <- (cash$WR / cash$TOTAL) * 100
+cash$TEP <- (cash$TE / cash$TOTAL) * 100
+cash$OLP <- (cash$OL / cash$TOTAL) * 100
+cash$DLP <- (cash$DL / cash$TOTAL) * 100
+cash$LBP <- (cash$LB / cash$TOTAL) * 100
+cash$DBP <- (cash$DB / cash$TOTAL) * 100
+cash$K.P.LSP <- (cash$K.P.LS / cash$TOTAL) * 100
+permod <- lm(Win ~ QBP + RB.FBP + WRP + TEP + OLP + DLP + LBP + DBP + K.P.LSP, data = cash, na.action = na.omit)
+cash2 <- tidy(permod)
+cashg2 <- glance(permod)
+knitr::kable(cash2, caption = "Cash Model 2")
+knitr::kable(cashg2[1:4])
+```
+
+
+Ultimately, viewing the positional amounts as dollar amounts instead of percentages proved simpler and more accurate. 0.4353 still seemed like a slightly low R-squared value to make a definitive claim about positional importance. Therefore, the next step was to test the model in a predictive nature to see if a different solution would arise. The model was used to forecast win totals for the next season, 2020. Using Spotrac 3 again, a data frame was added to R consisting of 2020 team salaries broken down by position. The model was applied to this new data frame, multiplying each positional total by the coefficient of the model. However, something seemed weird when the predictions came in. Several teams without a recent history of success appeared at the top. After considering the reasons, it was clear that a team’s recent success or failure needed to also be included in order to make better decisions about the future. After all, spending is not the only factor that decides how well a team performs. Including win percentage was a good strategy to account for the unaccountable intangibles. The original model was recalculated, using win percentage from the 2018 season as a variable in the 2019 model, obtained from NFL.com^4^. The R-squared value had risen to 0.5009. After calculating new coefficients, I reapplied the model to the 2020 season, this time factoring in 2019 win percentage as a variable. The new prediction looked accurate.
+
+
+```{r cashmod3, echo=FALSE}
+newcash <- read.csv("/Users/drewtammaro/Desktop/Drew Data Work/PositionCash.csv")
+newcashmod <- lm(Win ~ QB + RB.FB + WR + TE + OL + DL + LB + DB + K.P.LS + Win18, data = newcash, na.action = na.omit)
+cash3 <- tidy(newcashmod)
+cashg3 <- glance(newcashmod)
+knitr::kable(cash3, caption = "Cash Model 3")
+knitr::kable(cashg3[1:4])
+```
+
+
+Of the 12 teams predicted to make the playoffs in the new model for next season, 8 were returning teams from last year, slightly above the average of 6.4 from 1991 to 2018 according to The Comeback^5^. Among other predictions, it put perennial powerhouses like the Pittsburgh Steelers and Dallas Cowboys back in the playoffs after both teams suffered injuries at key positions the year before. Additionally, the popular underdog Arizona Cardinals received a wild card berth and the Tampa Bay Buccaneers rose from mediocrity to finish 0.36 wins out of the playoffs, reflecting the story of the offseason in which the legendary Tom Brady replaced the hapless Jameis Winston as their quarterback. In addition, the model predicts Brady’s old team, the Patriots, to miss the playoffs for only the second time since 2002.
+
+In addition to predicting team success, this model contained one key piece of information that answered the critical question. Are quarterbacks definitively the most important position? One variable in the model showed significance: the salary of the quarterback position. With a p-value of 0.0493 and a positive coefficient, there is sufficient proof to show that the salary of the quarterback has a positive and significant relationship with win percentage. This solidifies the age-old notion that the quarterback is the most important position on the field. The quarterback’s job is to elevate the play of those around him, and this evidence shows that. Armed with this new statistical proof, it was time to answer the main question posed in this study.
+
+
+## Methods
+
+Despite a roster holding 53 players and around 25 starters, the quarterback has always been known as the most important, as was just mathematically proven. On every play except special teams, the quarterback is the first player to touch the ball when it is in play, therefore giving them the burden of deciding what to do with it. They can pass it to a teammate, the opponent, the ground, or out of bounds. The possibilities are endless, which is why the quarterback is the most important player. Mediocre teams have been successful due to a great quarterback. Great teams have fallen apart due to a bad quarterback. The discussion of the greatest player of all time usually contains about five quarterbacks and maybe one other position player. In an era that is very biased towards quarterbacks, it is vital to have a talented one. Therefore, teams are always looking for the best ways to identify and obtain quarterbacks.
+
+The first part of this problem begs the question, what statistics correlate most to a quarterback’s overall value and ability to win games. This question was answered by first finding a list of the highest ranked quarterbacks of all time, using Pro Football Reference^6^. These were sorted by highest career AV, or approximate value. Quarterbacks who played after 1970 were taken into consideration, as this is considered the post-merger era, when the National Football League was initially brought together following a battle with the American Football League. Finally, only quarterbacks with more than 10,000 career passing yards were used, as this would accurately find true quarterbacks with passing careers, and not players who obtained more success by running with the ball. The top 100 players from this list were exported to an excel spreadsheet. Once there, the correlation function was used to find out which statistics best correlated to both AV and win percentage.
+
+For win percentage, touchdown percentage, or the percentage of a quarterback’s passes that end up as touchdowns, was the highest correlated at 0.5855. As would be expected, interception percentage had the lowest correlation, or highest negative correlation at -0.2293. Interestingly enough, there was a slightly positive relationship between interceptions and win percentage at 0.0300. With regards to approximate value, yards and touchdowns both had correlations of over 0.9 with AV. The lowest correlation for AV was -0.3703, with sack percentage. The conclusion to draw from this is simple. If a team is looking to add a quarterback, they should target one with a high touchdown percentage and a low interception percentage if they want to win games. At the same time, interceptions are not frowned upon, as long they are not in high amounts. This is essentially promoting a gun-slinging style of play where the player is not afraid to throw a risky pass now and then. With regards to finding the best overall player with career value, the best quarterback is one who avoids sacks and produces high volumes of yards and touchdowns. None of this is ground-breaking news however.
+
+The second part of this problem revolves around how teams can draft college players that will make successful professional quarterbacks. The usual way of going about this process is to watch every game of the player in question and use intuition and gut instinct to evaluate whether or not the player fits with your team. The goal was to use previous player data to create a model that would predict professional success based off of collegiate statistics. The first step in this process was to find NFL quarterbacks to base the model on. Pro Football Reference 6 compiled a list of players sorted by approximate value, or what they contributed to their team. Quarterbacks from 2000-2018 were included due to recent changes in the game’s playstyle and how it lines up with college football. The top 272 quarterbacks, the maximum amount available, were then transferred to a spreadsheet and sorted by their average annual value over the first five years of their career, to be fair to the quarterbacks who do not last long in the league. Concurrently, Sports Reference^7^ was used for their College Player Index to select the top 400 quarterbacks since 2000 sorted by passing TDs, with hope that many of the NFL quarterbacks from the first list would be on here. The issue is that not every professional player was significant in college, and not every college player is significant at the professional level, making it difficult to line up their data. SQL was used to join together the tables by player name, creating a data frame to put into R, consisting of 113 remaining players.
+
+
+```{r qbmod1, echo=FALSE, results='asis'}
+nfl <- read.csv("/Users/drewtammaro/Desktop/Honors Thesis/NFLStats.csv", stringsAsFactors = FALSE)
+cfb <- read.csv("/Users/drewtammaro/Desktop/Honors Thesis/CFBStats.csv", stringsAsFactors = FALSE)
+qbdata <- merge(nfl, cfb, by = "Player")
+qbdata2 <- qbdata[,-c(2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,19,20,21,22,23,36:48)]
+qbmod1 <- lm(AAV ~ G.y + Cmp + Att + Pct + Yds + TD + Int + Rate + YPG + TD.Int.Ratio + YPTD + TD.G, data = qbdata2, na.action = na.omit)
+library(broom)
+qb1 <- tidy(qbmod1)
+qbg1 <- glance(qbmod1)
+knitr::kable(qb1, caption = "Model 1")
+knitr::kable(qbg1[1:5])
+```
+
+
+It is clear based on a number of factors in the output that this linear model is highly insufficient to make any conclusions. First, none of the twelve variables included show a p-value of less than 0.05. Only one of them, QB Rating, is less than 0.1. This makes sense, as QB Rating is a comprehensive metric that increases with successful play. This also indicates that none of these variables are significant in predicting the quarterback’s approximate value at the professional level. It is true that performing variable selection and reducing the number of variables may cause increases in the significance of other variables. However, the overall R-squared value of the model is 0.149, indicating that we may need more data. Two different sources of additional variables make sense to use.
+
+First, when scouting a quarterback to draft, professional football teams spend a lot of time analyzing their statistics from college games, as was just shown. Another crucial factor in the decision process is the study of their physical attributes. A player’s height and weight are taken into consideration due to the physicality of the league and sport in general. Quarterbacks that are too short might not be able to see as well when looking downfield over their offensive line. Quarterbacks that are too tall tend to have longer arm motions that can delay the throw long enough for them to be sacked. Quarterbacks that are too heavy can be slow and not able to escape pressure from the defense. Quarterbacks that are too light can get hurt easily when hit hard on a tackle. Physical attributes have a massive impact on where a player is drafted, so it stands to reason that they can be used as critical variables in predicting success at the next level.
+
+Measurements from prior NFL Combines were found to match with the existing data frame in R. These statistics were obtained from nflcombineresults.com^8^. The data was sorted on the website to only include quarterback measurements, as this is the position being focused on. After merging this new data frame with the prior set by player name, 103 quarterbacks remain. 
+
+Second, there is a significantly varying level of competition when it comes to college football. The top level of college football, Division 1, is split into FBS and FCS, with FBS being the top teams. Within FBS, the top five conferences are the most competitive and called the Power 5. This is where the majority of NFL talent comes from. Specifically, 9 of the 13 quarterbacks drafted in the 2020 NFL Draft came from Power 5 conferences. In order to adjust for this, a data frame was created with a dummy variable indicating whether quarterbacks came from these schools or not. After merging these data frames, a new linear regression is run to see how well this additional variable improved the R-squared value for overall fit. 
+
+
+```{r qbmod2, echo=FALSE, results='asis'}
+combine <- read.csv("/Users/drewtammaro/Desktop/Honors Thesis/Combine.csv", stringsAsFactors = FALSE)
+school <- read.csv("/Users/drewtammaro/Desktop/Honors Thesis/School.csv", stringsAsFactors = FALSE)
+combine2 <- combine[-c(5:9)]
+qbdata3 <- merge(qbdata2, combine2, by = "Player")
+qbmod2 <- lm(AAV ~ G.y + Cmp + Att + Pct + Yds + TD + Int + Rate + YPG + TD.Int.Ratio + YPTD + TD.G + Height + Weight, data = qbdata3, na.action = na.omit)
+school2 <- school[-c(2)]
+qbdata4 <- merge(qbdata3, school2, by = "College")
+qbmod3 <- lm(AAV ~ G.y + Cmp + Att + Pct + Yds + TD + Int + Rate + YPG + TD.Int.Ratio + YPTD + TD.G + Height + Weight + School, data = qbdata4, na.action = na.omit)
+qb2 <- tidy(qbmod3)
+qbg2 <- glance(qbmod3)
+knitr::kable(qb2, caption= "Model 2")
+knitr::kable(qbg2[1:5])
+```
+
+
+After adding these additional variables, the R-squared value has increased to 0.254. While still low, this value is 70.3% higher than the original value provided by the first data frame of 0.149. This suggests that the additional variables have contributed to a more accurate data frame from which to create the final model. The next step is to undergo variable selection.
+	
+At first glance, several of the variables show progess in becoming significant with regards to predicting approximate value due to them possessing a p-value of less than 0.1. Games played and pass attempts are seen as the most significant contributors. This information lends itself to the scouting notion that experience is critical to being successful upon entering the league. Unnecessary variables may be causing the true significant variables to not show lower p-values. Using graphs, we can determine the best possible number of variables to maximize adjusted R-squared.
+
+
+```{r graphs, echo=FALSE}
+library(leaps)
+regfull <- regsubsets(AAV ~ G.y + Cmp + Att + Pct + Yds + TD + Int + Rate + YPG + TD.Int.Ratio + YPTD + TD.G + Height + Weight + School, data = qbdata4, nvmax = 15)
+reg.summary <- summary(regfull)
+par(mfrow=c(1, 2))
+plot(reg.summary$rss, xlab = "Number of Variables", ylab = "RSS", type = "l")
+plot(reg.summary$adjr2, xlab = "Number of Variables", ylab = "Adjusted RSq", type ="l")
+points(which.max(reg.summary$adjr2), reg.summary$adjr2[which.max(reg.summary$adjr2)],
+       col = "red", cex = 2, pch = 20)
+```
+
+
+As seen in the graph, adjusted R-squared is maximized with 9 variables. A useful tool to see which 9 variables help achieve the best model is to use a bic plot.
+
+
+```{r graphs2, echo=FALSE}
+plot(regfull, scale ="bic")
+```
+
+
+Based off the bic chart, we can conclude that the most accurate model includes games, completions, attempts, QB Rating, yards per game, TD:Int ratio, height, weight, and school. A new model is run using only these 9 variables.
+
+
+```{r qbmod3, echo=FALSE, results='asis'}
+qbmod4 <- lm(AAV ~ G.y + Cmp + Att + Rate + YPG + TD.Int.Ratio + Height + Weight + School, data = qbdata4, na.action = na.omit)
+qb3 <- tidy(qbmod4)
+qbg3 <- glance(qbmod4)
+knitr::kable(qb3, caption= "Model 3")
+knitr::kable(qbg3[1:5])
+```
+
+
+The results are encouraging. Four variables: games, completions, attempts, and yards per game, have achieved significance levels below 0.05. Despite the R-squared value dropping to 0.231, the adjusted R-squared value has increased from 0.047 to 0.132 from the original model. The most encouraging sign of all is the overall significance of the model. The p-value, which had been insignificant at 0.1526 and then 0.1519, has now decreased to 0.0228, showing the model is significant in predicting approximate value. By removing variables, the adjusted R-squared value has proven that more variables does not indicate higher significance. The final step is to use this new model to predict based on a group of players not used in gathering the data: the 2019 college quarterbacks. The same process for gathering the data is used from before. The quarterbacks are sorted by touchdowns, then combined with their Combine measurements and school in order to gather all of the necessary variables. In this process, the original 60 quarterbacks are reduced to 23. Using the coefficients from the trained model before, we are able to calculate the predicted approximate value over the first five years of the quarterbacks’ career.
+
+
+```{r qbmod4, echo=FALSE}
+cfbtest <- read.csv("/Users/drewtammaro/Desktop/Honors Thesis/CFBTest.csv", stringsAsFactors = FALSE)
+test1 <- merge(cfbtest, combine2, by = "Player")
+test2 <- merge(test1, school, by = "College")
+t1 <- test2[,-c(17)]
+t1$aav <- -29.8702981 + 0.517214 * t1$G + 0.0287961 * t1$Cmp - 0.0359861 * t1$Att - 0.2147471 * t1$Rate + 0.0904578 * t1$YPG + 0.6339681 * t1$TD.Int.Ratio + 0.3555566 * t1$Height + 0.0614033 * t1$Weight + 1.0221383 * t1$School
+knitr::kable(t1[c(2,1,18)], caption= "Predicted AAV")
+```
+
+
+There are several interesting results to see here. The highest quarterback listed, Anthony Gordon, has yet to play a game at the professional level after a breakout senior season of college. Both teams he has played for in the NFL are currently led by All-Pro quarterbacks. Three of the next four quarterbacks have won games as professionals. Sixth on the list is Joe Burrow, the first pick of the 2020 Draft and projected Rookie of the Year before he tore his ACL. Eighth on the list, Justin Herbert, is the actual winner of the Offensive Rookie of the Year Award. Several other franchise quarterbacks, including Drew Lock and Baker Mayfield, finished in the middle of the pack. A few bad predictions can be seen in the results. Last on the list is Kyler Murray, a Heisman Trophy winner and the 2019 Offensive Rookie of the Year. Second to last is Tua Tagovailoa, the fifth pick in the draft and an underperforming rookie. Fourth to last is Jalen Hurts, another franchise quarterback who underperformed as a rookie. A trait all three of these quarterbacks share is their athleticism and ability to run with the football. While common at the college level, the most successful professional quarterbacks tend to be those who stay in the pocket. The model is not as kind to mobile quarterbacks as it is to those who refuse to run. While significant, the model has mostly failed to accurately predict the NFL success of these quarterbacks. However, their careers are still young and the data was trained using the first five seasons of professional-level statistics.
+
+
+## Conclusion
+
+The Bowl Championship Series, more commonly known as the BCS, was a ranking system used by the NCAA from 1998 to 2013 to pick the teams who would play in the National Championship and other important bowl games. The rankings were determined by a combination of the team's standings in polls and their value as decided by a computer algorithm. After several moderately-successful years, it became clear that there was an inherent flaw with using a computer to rank teams, regardless of the accuracy. A computer is incapable of watching college football games and physically perceiving the overall ability of a team. Teams that looked good on paper were not always as talented when watched in games. Eventually, the system was replaced with a committee that decided which teams would be ranked based on a combination of statistics and how well they played football to the naked eye. This concept, which was the largest defect in the great BCS system, became known as the “eye test.”
+	
+This same eye test that helps pick the best football teams in the country is critical in evaluating players. A given prospect can have all of the statistics and play for the best school in the country, but do they look like a quality football player? Each National Football League team has a scouting department with dozens of employees whose sole purpose is to watch college football players and decide which ones possess the talent and the “it-factor” to succeed at the next level. The world of professional sports is evolving. 20 years ago, hardly any teams had even thought of using next-level data analysis to improve the performance of their respective teams. Now, it is tough to find a team without an analytics department. Projects and ideas like these are incredibly useful in both finding the next generation of talented athletes as well as helping them maximize their performance on the field. However, these numbers do not tell the whole story. Players must possess the intangible qualities that win championships: heart, tenacity, and the ability to fight through adversity. These are all incredibly valuable skills that simply cannot be quantified with the technology of this era, and maybe ever. That is why this model was not successful and why this question is answered with a half-baked response. Can college statistics be used to predict the next great star quarterback? The answer: not entirely, but they can certainly be used to help. The future of sports is exciting and limitless due to the emergence of analytics, but only a marriage of existing knowledge and intuition, combined with these advanced statistics, will lead to sustained success.
+
+
+## Works Cited
+
+^1^ Gough, Christina. “NFL Revenue by Year.” Statista, 9 Oct. 2020, www.statista.com/statistics/193457/total-league-revenue-of-the-nfl-since-2005/. 
+
+^2^ Kerenzulli, Kerri Anne. “Here's What the Average NFL Player Makes in a Season.” CNBC, CNBC, 5 Sept. 2019, www.cnbc.com/2019/02/01/heres-what-the-average-nfl-players-makes-in-a-season.html. 
+
+^3^ “NFL Positional Payrolls.” Spotrac.com, www.spotrac.com/nfl/positional/breakdown/. 
+
+^4^ “Standings.” NFL.com, National Football League, www.nfl.com/standings. 
+
+^5^ Cassillo, John. “NFL's 2018 Playoffs Retain Just Four Teams from Last Year, Tied for Least since 1991.” The Comeback, 4 Jan. 2018, thecomeback.com/nfl/nfl-2018-playoffs-retain-four-teams-last-year-tied-since-1991.html. 
+
+^6^ “Football: Player Season Finder.” Stathead.com, Sports Reference, www.pro-football-reference.com/play-index/psl_finder.cgi. 
+
+^7^ “Player Game Finder: College Football at Sports.” Sports-Reference.com, Sports Reference CFB, www.sports-reference.com/cfb/play-index/pgl_finder.cgi. 
+
+^8^ “Large Data Update Complete.” NFL Combine Results, National Football League, 13 Sept. 2020, nflcombineresults.com/. 
